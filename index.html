@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programming Project #5 - Part A</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        section {
+            margin-bottom: 40px;
+        }
+        img {
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+            display: inline-block;
+            margin: 10px;
+        }
+        .deliverable {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+        .comparison-title {
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Project #5: Part A</h1>
+        <h2>CS180: Intro to Computer Vision and Computational Photography</h2>
+    </header>
+
+    <section id="introduction">
+        <h2>Introduction</h2>
+        <p>
+            This project focuses on exploring the capabilities of diffusion models for various tasks, including image sampling, inpainting, and creating optical illusions. 
+            It serves as the first part of a larger project, allowing me to get hands-on experience with pretrained diffusion models, implementing sampling loops, and performing creative experiments with guided generation.
+        </p>
+    </section>
+
+    <section id="part-0-setup">
+        <h2>Part 0: Setup</h2>
+        <p>
+            I began by gaining access to the DeepFloyd IF diffusion model and setting up the environment. This involved creating a Hugging Face account, accepting usage conditions, and downloading precomputed text embeddings for ease of use on free-tier Colab GPUs.
+        </p>
+    </section>
+
+    <section id="part-1-sampling-loops">
+        <h2>Part 1: Sampling Loops</h2>
+
+        <article id="part-1-1-forward-process">
+            <h3>1.1 Implementing the Forward Process</h3>
+            <p>
+                I implemented a function to add noise to an image progressively. This helped me understand how diffusion models generate noisy images and reverse the process. Below are the results for the Campanile test image at different noise levels:
+            </p>
+            <div class="deliverable">
+                <img src="images/campanile.jpg" alt="Original Campanile">
+                <img src="images/1.1/1.1_noisy_250.png" alt="Noisy Campanile at t=250">
+                <img src="images/1.1/1.1_noisy_500.png" alt="Noisy Campanile at t=500">
+                <img src="images/1.1/1.1_noisy_750.png" alt="Noisy Campanile at t=750">
+            </div>
+        </article>
+
+        <article id="part-1-2-classical-denoising">
+            <h3>1.2 Classical Denoising</h3>
+            <p>
+                Using Gaussian blur, I attempted to denoise the images from the previous step. While this method reduces noise, it struggles to recover the original details effectively. The results are displayed below, side by side for comparison:
+            </p>
+            <div class="deliverable">
+                <div class="comparison-title">Comparison at t=250</div>
+                <img src="images/1.1/1.1_noisy_250.png" alt="Noisy Campanile at t=250">
+                <img src="images/1.2/1.2_blurred_250.png" alt="Blurred Campanile at t=250">
+                <div class="comparison-title">Comparison at t=500</div>
+                <img src="images/1.1/1.1_noisy_500.png" alt="Noisy Campanile at t=500">
+                <img src="images/1.2/1.2_blurred_500.png" alt="Blurred Campanile at t=500">
+                <div class="comparison-title">Comparison at t=750</div>
+                <img src="images/1.1/1.1_noisy_750.png" alt="Noisy Campanile at t=750">
+                <img src="images/1.2/1.2_blurred_750.png" alt="Blurred Campanile at t=750">
+            </div>
+        </article>
+
+        <article id="part-1-3-one-step-denoising">
+            <h3>1.3 One-Step Denoising</h3>
+            <p>
+                Here, I used a pretrained diffusion model to estimate and remove noise from the images. This method produced much better results compared to Gaussian blur. Below are the noisy images, Gaussian blur results, and the diffusion model denoising results for comparison:
+            </p>
+            <div class="deliverable">
+                <div class="comparison-title">Comparison at t=250</div>
+                <img src="images/1.1/1.1_noisy_250.png" alt="Noisy Campanile at t=250">
+                <img src="images/1.2/1.2_blurred_250.png" alt="Blurred Campanile at t=250">
+                <img src="images/1.3/1.3_denoised_250.png" alt="Denoised Campanile at t=250">
+                <div class="comparison-title">Comparison at t=500</div>
+                <img src="images/1.1/1.1_noisy_500.png" alt="Noisy Campanile at t=500">
+                <img src="images/1.2/1.2_blurred_500.png" alt="Blurred Campanile at t=500">
+                <img src="images/1.3/1.3_denoised_500.png" alt="Denoised Campanile at t=500">
+                <div class="comparison-title">Comparison at t=750</div>
+                <img src="images/1.1/1.1_noisy_750.png" alt="Noisy Campanile at t=750">
+                <img src="images/1.2/1.2_blurred_750.png" alt="Blurred Campanile at t=750">
+                <img src="images/1.3/1.3_denoised_750.png" alt="Denoised Campanile at t=750">
+            </div>
+        </article>
+
+        <article id="part-1-4-iterative-denoising">
+            <h3>1.4 Iterative Denoising</h3>
+            <p>
+                I implemented an iterative denoising process to gradually refine noisy images into clean ones. This allowed for more effective recovery compared to a single-step approach. Below are the deliverables for this part:
+            </p>
+            <ul>
+                <li>Create strided_timesteps: a list of monotonically decreasing timesteps, starting at 990, with a stride of 30, eventually reaching 0. Also initialize the timesteps using the function <code>stage_1.scheduler.set_timesteps(timesteps=strided_timesteps)</code>.</li>
+                <li>Show the noisy image every 5th loop of denoising (it should gradually become less noisy).</li>
+                <li>Show the final predicted clean image, using iterative denoising.</li>
+                <li>Show the predicted clean image using only a single denoising step, as was done in the previous part. This should look much worse.</li>
+                <li>Show the predicted clean image using Gaussian blurring, as was done in part 1.2.</li>
+                <li>Complete the iterative_denoise function.</li>
+            </ul>
+            <div class="deliverable">
+                <div class="comparison-title">Noisy Image (Every 5th Loop)</div>
+                <img src="images/1.4/1.4_iterative_t_90.png" alt="Iterative Step 1">
+                <img src="images/1.4/1.4_iterative_t_240.png" alt="Iterative Step 5">
+                <img src="images/1.4/1.4_iterative_t_390.png" alt="Iterative Step 10">
+                <img src="images/1.4/1.4_iterative_t_540.png" alt="Iterative Step 10">
+                <img src="images/1.4/1.4_iterative_t_690.png" alt="Iterative Step 10">
+                <div class="comparison-title">Final Predicted Clean Image (Iterative Denoising)</div>
+                <img src="images/1.4/1.4_iterative_final.png" alt="Final Iterative Denoised Image">
+                <div class="comparison-title">Predicted Clean Image (Single Step Denoising)</div>
+                <img src="images/1.4/1.4_single_step.png" alt="Single Step Denoised Image">
+                <div class="comparison-title">Predicted Clean Image (Gaussian Blurring)</div>
+                <img src="images/1.2/1.2_blurred_750.png" alt="Gaussian Blurred Image">
+            </div>
+        </article>
+    </section>
+
+
+    <section id="part-1-5-diffusion-model-sampling">
+        <h2>Part 1.5: Diffusion Model Sampling</h2>
+        <p>
+            In this section, I generated images from pure noise using the <code>iterative_denoise</code> function. This effectively demonstrates the diffusion model's ability to transform noise into realistic images.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Generated Samples</div>
+            <img src="images/1.5/1.5_1.png" alt="Sample 1">
+            <img src="images/1.5/1.5_2.png" alt="Sample 2">
+            <img src="images/1.5/1.5_3.png" alt="Sample 3">
+            <img src="images/1.5/1.5_4.png" alt="Sample 4">
+            <img src="images/1.5/1.5_5.png" alt="Sample 5">
+        </div>
+    </section>
+    
+    <section id="part-1-6-classifier-free-guidance">
+        <h2>Part 1.6: Classifier-Free Guidance (CFG)</h2>
+        <p>
+            By implementing the <code>iterative_denoise_cfg</code> function, I was able to enhance the quality of generated images using CFG. This method significantly improved the realism of the results by combining conditional and unconditional noise estimates.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Generated Samples with CFG</div>
+            <img src="images/1.6/1.6_1.png" alt="Sample 1 with CFG">
+            <img src="images/1.6/1.6_2.png" alt="Sample 2 with CFG">
+            <img src="images/1.6/1.6_3.png" alt="Sample 3 with CFG">
+            <img src="images/1.6/1.6_4.png" alt="Sample 4 with CFG">
+            <img src="images/1.6/1.6_5.png" alt="Sample 5 with CFG">
+        </div>
+    </section>
+    
+    <section id="part-1-7-image-to-image-translation">
+        <h2>Part 1.7: Image-to-Image Translation</h2>
+        <p>
+            In this section, I explored the SDEdit algorithm to transform images by progressively denoising them with varying starting noise levels. The results highlight how noise influences the degree of transformation.
+        </p>
+    </section>
+    
+    <section id="part-1-7-1-campanile-edits">
+        <h3>1.7.1 Campanile Edits</h3>
+        <p>
+            The Campanile test image was processed using noise levels starting at various indices. Higher starting noise levels led to more dramatic transformations, while lower noise levels resulted in subtle edits closer to the original image.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Campanile Edits at Different Noise Levels</div>
+            <img src="images/1.7/1.7_1.png" alt="Campanile Edit with i_start=1">
+            <img src="images/1.7/1.7_2.png" alt="Campanile Edit with i_start=3">
+            <img src="images/1.7/1.7_3.png" alt="Campanile Edit with i_start=5">
+            <img src="images/1.7/1.7_4.png" alt="Campanile Edit with i_start=7">
+            <img src="images/1.7/1.7_5.png" alt="Campanile Edit with i_start=10">
+            <img src="images/1.7/1.7_6.png" alt="Campanile Edit with i_start=20">
+        </div>
+    </section>
+    
+    <section id="part-1-7-2-hand-drawn-sketches">
+        <h3>1.7.2 Hand-Drawn Sketches</h3>
+        <p>
+            Hand-drawn sketches were processed through the same method, transforming them into more realistic images while retaining some features of the original drawings. Each noise level progressively reshaped the image to align with the model's learned image manifold.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Sketch 1 Edits</div>
+            <img src="images/1.7/1.7_drawing_1_1.png" alt="Sketch 1 at i_start=1">
+            <img src="images/1.7/1.7_drawing_1_3.png" alt="Sketch 1 at i_start=3">
+            <img src="images/1.7/1.7_drawing_1_5.png" alt="Sketch 1 at i_start=5">
+            <img src="images/1.7/1.7_drawing_1_7.png" alt="Sketch 1 at i_start=7">
+            <img src="images/1.7/1.7_drawing_1_10.png" alt="Sketch 1 at i_start=10">
+            <img src="images/1.7/1.7_drawing_1_20.png" alt="Sketch 1 at i_start=20">
+    
+            <div class="comparison-title">Sketch 2 Edits</div>
+            <img src="images/1.7/1.7_drawing_2_1.png" alt="Sketch 2 at i_start=1">
+            <img src="images/1.7/1.7_drawing_2_3.png" alt="Sketch 2 at i_start=3">
+            <img src="images/1.7/1.7_drawing_2_5.png" alt="Sketch 2 at i_start=5">
+            <img src="images/1.7/1.7_drawing_2_7.png" alt="Sketch 2 at i_start=7">
+            <img src="images/1.7/1.7_drawing_2_10.png" alt="Sketch 2 at i_start=10">
+            <img src="images/1.7/1.7_drawing_2_20.png" alt="Sketch 2 at i_start=20">
+        </div>
+    </section>
+    
+    <section id="part-1-7-3-web-images">
+        <h3>1.7.3 Web Images</h3>
+        <p>
+            Web images were similarly processed, showcasing how the model can adapt diverse sources into refined outputs. By varying the starting noise levels, the images transitioned from abstract or distorted versions back to realistic representations.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Web Image 1 Edits</div>
+            <img src="images/1.7/1.7_web_1_1.png" alt="Web Image 1 at i_start=1">
+            <img src="images/1.7/1.7_web_1_3.png" alt="Web Image 1 at i_start=3">
+            <img src="images/1.7/1.7_web_1_5.png" alt="Web Image 1 at i_start=5">
+            <img src="images/1.7/1.7_web_1_7.png" alt="Web Image 1 at i_start=7">
+            <img src="images/1.7/1.7_web_1_10.png" alt="Web Image 1 at i_start=10">
+            <img src="images/1.7/1.7_web_1_20.png" alt="Web Image 1 at i_start=20">
+        </div>
+    </section>
+    
+    </section>
+    
+    <section id="part-1-8-visual-anagrams">
+        <h2>Part 1.8: Visual Anagrams</h2>
+        <p>
+            By implementing the <code>visual_anagrams</code> function, I created optical illusions where an image changes appearance when flipped upside down.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Visual Anagrams</div>
+            <img src="images/1.8/1.8_old.png" alt="An Oil Painting of an Old Man">
+            <img src="images/1.8/1.8_old_flipped.png" alt="An Oil Painting of People Around a Campfire">
+
+            <img src="images/1.8/1.8_dog.png" alt="An Oil Painting of an Old Man">
+            <img src="images/1.8/1.8_dog_flipped.png" alt="An Oil Painting of People Around a Campfire">
+
+            <img src="images/1.8/1.8_waterfall.png" alt="An Oil Painting of an Old Man">
+            <img src="images/1.8/1.8_waterfall_flipped.png" alt="An Oil Painting of People Around a Campfire">
+        </div>
+    </section>
+    
+    <section id="part-1-9-hybrid-images">
+        <h2>Part 1.9: Hybrid Images</h2>
+        <p>
+            In this section, I created hybrid images that appear differently depending on the viewer's distance, using low-pass and high-pass filters to combine features from two images.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Hybrid Images</div>
+            <img src="images/1.9/1.9_skull.png" alt="A Skull from Far Away, a Waterfall Close Up">
+            <img src="images/1.9/1.9_rocket.png" alt="A Skull from Far Away, a Waterfall Close Up">
+            <img src="images/1.9/1.9_dog.png" alt="A Skull from Far Away, a Waterfall Close Up">
+            <!-- Add more hybrid images as needed -->
+        </div>
+    </section>
+
+    <section id="part-2-diffusion-models">
+        <h2>Part 2: Diffusion Models from Scratch</h2>
+        <p>
+            In Part 2, I trained a diffusion model from scratch on the MNIST dataset. This involved implementing a UNet architecture, training it as a denoiser, and using it iteratively for diffusion-based image generation. The tasks progressed from single-step denoising to time-conditioned and class-conditioned UNet models.
+        </p>
+    </section>
+    
+    <section id="part-2-1-single-step-denoising">
+        <h3>2.1 Single-Step Denoising</h3>
+        <p>
+            I implemented a UNet architecture for single-step denoising. The model was trained on noisy MNIST images to reconstruct clean images by optimizing the L2 loss. Below are visualizations of the noising process and the results after training for 1 and 5 epochs.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Visualization of Noising Process</div>
+            <img src="images/2.0/2.0_noisy.png" alt="Noising Process Visualization">
+    
+            <div class="comparison-title">Training Loss Curve</div>
+            <img src="images/2.0/2.0_training.png" alt="Training Loss Curve for Single-Step Denoising">
+    
+            <div class="comparison-title">Results After Training</div>
+            <div class="comparison-title">After Epoch 1</div>
+            <img src="images/2.0/2.0_noisy.png" alt="Noising Process Visualization">
+
+    
+        </div>
+    </section>
+    
+    <section id="part-2-2-time-conditioned-unet">
+        <h3>2.2 Time-Conditioned UNet</h3>
+        <p>
+            I extended the UNet architecture to include time conditioning, enabling it to handle varying noise levels. The model was trained to predict noise given a noisy image and its timestep. Below are the training loss curve and sampling results at different epochs.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Training Loss Curve</div>
+            <img src="images/2.1/2.1_training.png" alt="Training Loss Curve for Time-Conditioned UNet">
+    
+            <div class="comparison-title">Sampling Results</div>
+            <div class="comparison-title">After Epoch 5</div>
+            <img src="images/2.1/2.1_epoch5.png" alt="Epoch 5 Sample 1">
+            <div class="comparison-title">After Epoch 20</div>
+            <img src="images/2.1/2.1_epoch20.png" alt="Epoch 20 Sample 1">
+        </div>
+    </section>
+    
+    <section id="part-2-3-class-conditioned-unet">
+        <h3>2.3 Class-Conditioned UNet</h3>
+        <p>
+            To improve generation control, I added class conditioning to the UNet architecture. This involved modifying the architecture to take a one-hot encoded class vector along with the timestep. Below are the training loss curve and sampling results with classifier-free guidance.
+        </p>
+        <div class="deliverable">
+            <div class="comparison-title">Training Loss Curve</div>
+            <img src="images/2.2/2.2_training.png" alt="Training Loss Curve for Class-Conditioned UNet">
+    
+            <div class="comparison-title">Sampling Results</div>
+            <div class="comparison-title">After Epoch 5</div>
+            <img src="images/2.2/2.2_5.png" alt="Epoch 5 Digit 0">
+ 
+            <div class="comparison-title">After Epoch 20</div>
+            <img src="images/2.2/2.2_20.png" alt="Epoch 20 Digit 0">
+        </div>
+    </section>
+    
+    
+    
+
+
+
+    <footer>
+        <p>Created by Jackson for CS180 - Berkeley</p>
+    </footer>
+</body>
+</html>
